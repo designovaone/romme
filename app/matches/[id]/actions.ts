@@ -1,0 +1,76 @@
+'use server';
+
+import { eq } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
+import { requireSession } from '../../_lib/actions-helpers';
+import { submitRoundSchema } from '../../_lib/validation';
+import { getDb } from '../../_lib/db';
+import { matches, rounds } from '../../_lib/schema';
+
+export type SubmitRoundState = { error: string | null } | undefined;
+
+export async function submitRound(
+  _prev: SubmitRoundState,
+  formData: FormData
+): Promise<SubmitRoundState> {
+  await requireSession();
+
+  const parsed = submitRoundSchema.safeParse({
+    matchId: formData.get('matchId'),
+    roundNumber: formData.get('roundNumber'),
+    leftPoints: formData.get('leftPoints'),
+    rightPoints: formData.get('rightPoints'),
+    winner: formData.get('winner'),
+  });
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return { error: first?.message ?? 'Ungültige Eingabe.' };
+  }
+
+  const { matchId, roundNumber, leftPoints, rightPoints, winner } = parsed.data;
+  const db = getDb();
+  const matchRows = await db
+    .select({ roundCount: matches.roundCount, status: matches.status })
+    .from(matches)
+    .where(eq(matches.id, matchId))
+    .limit(1);
+  const m = matchRows[0];
+  if (!m) return { error: 'Spiel nicht gefunden.' };
+  if (m.status === 'complete') return { error: 'Spiel ist bereits beendet.' };
+  if (roundNumber > m.roundCount) {
+    return { error: 'Rundenzahl überschreitet das Spielmaximum.' };
+  }
+
+  const dealer = ((roundNumber - 1) % 2) as 0 | 1;
+
+  try {
+    await db.insert(rounds).values({
+      matchId,
+      roundNumber,
+      leftPoints,
+      rightPoints,
+      winner,
+      dealer,
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes('rounds_match_round_uniq') || msg.includes('duplicate')) {
+      return {
+        error:
+          'Diese Runde wurde bereits gespeichert. Bitte Seite neu laden.',
+      };
+    }
+    return { error: 'Speichern fehlgeschlagen. Bitte erneut versuchen.' };
+  }
+
+  if (roundNumber === m.roundCount) {
+    await db
+      .update(matches)
+      .set({ status: 'complete' })
+      .where(eq(matches.id, matchId));
+  }
+
+  revalidatePath(`/matches/${matchId}`);
+  revalidatePath('/');
+  return { error: null };
+}

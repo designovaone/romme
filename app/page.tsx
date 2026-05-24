@@ -1,65 +1,85 @@
-import Image from "next/image";
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { verifySession } from './_lib/dal';
+import { listMatches } from './_lib/queries';
+import { formatDateTime } from './_lib/format';
+import { Button } from './_components/Button';
+import { LogoutButton } from './_components/LogoutButton';
 
-export default function Home() {
+export default async function HomePage() {
+  const session = await verifySession();
+  if (!session.valid) redirect('/login');
+
+  const all = await listMatches();
+  const inProgress = all.find((m) => m.status === 'in_progress');
+  const finished = all.filter((m) => m.status === 'complete');
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <main className="min-h-dvh flex flex-col">
+      <header className="flex items-center justify-between p-4 border-b border-[var(--border)]">
+        <h1 className="text-2xl font-semibold">Rommé</h1>
+        <LogoutButton />
+      </header>
+
+      <div className="flex-1 p-4 flex flex-col gap-4 max-w-2xl mx-auto w-full">
+        {inProgress ? (
+          <Link
+            href={`/matches/${inProgress.id}`}
+            className="block rounded-xl border border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_10%,transparent)] p-4 text-base"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+            <div className="flex items-center justify-between">
+              <span>
+                Spiel läuft — {inProgress.leftName} vs. {inProgress.rightName}{' '}
+                ({inProgress.completedRounds}/{inProgress.roundCount})
+              </span>
+              <span aria-hidden>→</span>
+            </div>
+          </Link>
+        ) : null}
+
+        <Link href="/matches/new" className="block">
+          <Button fullWidth>+ Neues Spiel</Button>
+        </Link>
+
+        <section className="flex flex-col gap-2 mt-4">
+          <h2 className="text-sm uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+            Letzte Spiele
+          </h2>
+          {finished.length === 0 ? (
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+              Noch keine abgeschlossenen Spiele.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {finished.map((m) => {
+                const leftWins = m.leftTotal < m.rightTotal;
+                const rightWins = m.rightTotal < m.leftTotal;
+                return (
+                  <li key={m.id}>
+                    <Link
+                      href={`/matches/${m.id}`}
+                      className="block rounded-xl border border-[var(--border)] p-4 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                    >
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                        {formatDateTime(m.playedAt)}
+                      </div>
+                      <div className="mt-1 font-mono tabular-nums text-lg">
+                        <span className={leftWins ? 'font-semibold' : ''}>
+                          {m.leftName} {m.leftTotal}
+                        </span>
+                        <span className="text-zinc-400"> – </span>
+                        <span className={rightWins ? 'font-semibold' : ''}>
+                          {m.rightName} {m.rightTotal}
+                        </span>
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      </div>
+    </main>
   );
 }
