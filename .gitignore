@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local-only: working memory, session notes, private reference material
+# (kept on disk + synced separately, not published to the public repo)
+/MEMORY.md
+/CLAUDESESSIONS/
+/src/romme_notes.png

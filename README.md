@@ -61,3 +61,7 @@ This app expects two manual setup steps in Vercel:
 ## Files Richard should replace
 
 - `public/icon-512.png` and `public/apple-touch-icon.png` are solid-blue placeholders. Replace with real artwork for a polished PWA install.
+
+## License
+
+[MIT](LICENSE) © designovaone
