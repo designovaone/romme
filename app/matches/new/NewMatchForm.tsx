@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useRef, useState } from 'react';
+import { useActionState, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { createMatch, type CreateMatchState } from './actions';
 import { Button } from '../../_components/Button';
@@ -21,7 +21,8 @@ export function NewMatchForm({
   const [right, setRight] = useState(defaultRight);
   const [roundCount, setRoundCount] = useState<RoundCount>(5);
   const formRef = useRef<HTMLFormElement>(null);
-  const [state, formAction, pending] = useActionState(createMatch, initial);
+  const [state, formAction] = useActionState(createMatch, initial);
+  const [pending, start] = useTransition();
 
   function swap() {
     setLeft(right);
@@ -32,7 +33,9 @@ export function NewMatchForm({
     e.preventDefault();
     const fd = new FormData(formRef.current!);
     fd.set('playedAt', new Date().toISOString());
-    formAction(fd);
+    // useActionState's dispatch must run inside a transition when called
+    // directly (not via a form action/formAction prop), or React drops it.
+    start(() => formAction(fd));
   }
 
   return (
