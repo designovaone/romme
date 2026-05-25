@@ -134,6 +134,14 @@ export async function getLastUsedPlayerPair(): Promise<{
   return { left: 'Richard', right: 'Andrea' };
 }
 
+export async function getPlayers(): Promise<{ id: string; name: string }[]> {
+  const db = getDb();
+  return db
+    .select({ id: players.id, name: players.name })
+    .from(players)
+    .orderBy(asc(players.name));
+}
+
 export async function upsertPlayer(name: string): Promise<string> {
   const db = getDb();
   const trimmedName = name.trim();

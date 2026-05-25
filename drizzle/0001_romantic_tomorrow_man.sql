@@ -1,0 +1,2 @@
+ALTER TABLE "matches" DROP CONSTRAINT "matches_round_count_chk";--> statement-breakpoint
+ALTER TABLE "matches" ADD CONSTRAINT "matches_round_count_chk" CHECK ("matches"."round_count" >= 1 AND "matches"."round_count" <= 99);

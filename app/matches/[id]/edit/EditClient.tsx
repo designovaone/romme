@@ -199,8 +199,28 @@ function EditRow({
 }) {
   const [leftPoints, setLeftPoints] = useState(String(round.leftPoints));
   const [rightPoints, setRightPoints] = useState(String(round.rightPoints));
-  const [winner, setWinner] = useState<0 | 1>(round.winner);
   const [dealer, setDealer] = useState<0 | 1>(round.dealer);
+
+  // Winner is derived from the points: the player with 0 (loser entered points).
+  const lpNum = leftPoints === '' ? 0 : Number(leftPoints);
+  const rpNum = rightPoints === '' ? 0 : Number(rightPoints);
+  const winner: 0 | 1 | null =
+    lpNum === 0 && rpNum > 0 ? 0 : rpNum === 0 && lpNum > 0 ? 1 : null;
+  const winnerName =
+    winner === 0
+      ? match.leftPlayer.name
+      : winner === 1
+        ? match.rightPlayer.name
+        : null;
+
+  function onLeft(v: string) {
+    setLeftPoints(v);
+    if (v !== '' && Number(v) > 0) setRightPoints('');
+  }
+  function onRight(v: string) {
+    setRightPoints(v);
+    if (v !== '' && Number(v) > 0) setLeftPoints('');
+  }
 
   return (
     <tr className="border-t border-[var(--border)] align-top">
@@ -211,29 +231,28 @@ function EditRow({
         <div className="grid grid-cols-2 gap-2">
           <NumberInput
             value={leftPoints}
-            onValueChange={setLeftPoints}
+            onValueChange={onLeft}
             placeholder="0"
-            className="text-2xl min-h-[48px]"
+            className={`text-2xl min-h-[48px] ${
+              winner === 0 ? 'border-[var(--accent)]' : ''
+            }`}
           />
           <NumberInput
             value={rightPoints}
-            onValueChange={setRightPoints}
+            onValueChange={onRight}
             placeholder="0"
-            className="text-2xl min-h-[48px]"
+            className={`text-2xl min-h-[48px] ${
+              winner === 1 ? 'border-[var(--accent)]' : ''
+            }`}
           />
         </div>
-        <div className="grid grid-cols-2 gap-2 mt-2">
-          <label className="text-xs text-zinc-500 dark:text-zinc-400 flex flex-col gap-1">
+        <div className="grid grid-cols-2 gap-2 mt-2 items-end">
+          <div className="text-xs text-zinc-500 dark:text-zinc-400 flex flex-col gap-1">
             Gewinner
-            <select
-              value={winner}
-              onChange={(e) => setWinner(Number(e.target.value) as 0 | 1)}
-              className="rounded-lg border border-[var(--border)] bg-white dark:bg-zinc-900 px-2 min-h-[40px]"
-            >
-              <option value={0}>{match.leftPlayer.name}</option>
-              <option value={1}>{match.rightPlayer.name}</option>
-            </select>
-          </label>
+            <span className="min-h-[40px] flex items-center font-medium text-[var(--foreground)]">
+              {winnerName ?? '—'}
+            </span>
+          </div>
           <label className="text-xs text-zinc-500 dark:text-zinc-400 flex flex-col gap-1">
             Geber
             <select
@@ -251,15 +270,16 @@ function EditRow({
             Abbrechen
           </Button>
           <Button
-            onClick={() =>
+            onClick={() => {
+              if (winner === null) return;
               onSave({
-                leftPoints: Number(leftPoints || '0'),
-                rightPoints: Number(rightPoints || '0'),
+                leftPoints: lpNum,
+                rightPoints: rpNum,
                 winner,
                 dealer,
-              })
-            }
-            disabled={pending}
+              });
+            }}
+            disabled={pending || winner === null}
           >
             {pending ? 'Speichere…' : 'Speichern'}
           </Button>

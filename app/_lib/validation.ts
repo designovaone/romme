@@ -8,7 +8,7 @@ export const createMatchSchema = z
   .object({
     leftPlayer: z.string().trim().min(1).max(40),
     rightPlayer: z.string().trim().min(1).max(40),
-    roundCount: z.union([z.literal(3), z.literal(5), z.literal(10)]),
+    roundCount: z.coerce.number().int().min(1).max(99),
     playedAt: z.iso.datetime(),
   })
   .refine(
@@ -19,7 +19,7 @@ export const createMatchSchema = z
 export const submitRoundSchema = z
   .object({
     matchId: z.uuid(),
-    roundNumber: z.coerce.number().int().min(1).max(10),
+    roundNumber: z.coerce.number().int().min(1).max(99),
     leftPoints: z.coerce.number().int().min(0).max(500),
     rightPoints: z.coerce.number().int().min(0).max(500),
     winner: z.coerce.number().int().min(0).max(1),

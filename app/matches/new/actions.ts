@@ -16,14 +16,10 @@ export async function createMatch(
 ): Promise<CreateMatchState> {
   await requireSession();
 
-  const roundCountRaw = Number(formData.get('roundCount'));
   const parsed = createMatchSchema.safeParse({
     leftPlayer: formData.get('leftPlayer'),
     rightPlayer: formData.get('rightPlayer'),
-    roundCount:
-      roundCountRaw === 3 || roundCountRaw === 5 || roundCountRaw === 10
-        ? roundCountRaw
-        : undefined,
+    roundCount: formData.get('roundCount'),
     playedAt: formData.get('playedAt'),
   });
   if (!parsed.success) {

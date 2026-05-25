@@ -7,8 +7,7 @@ import { Button } from '../../_components/Button';
 
 const initial: CreateMatchState = { error: null };
 
-const ROUND_OPTIONS = [3, 5, 10] as const;
-type RoundCount = (typeof ROUND_OPTIONS)[number];
+const PRESETS = [3, 5, 10] as const;
 
 export function NewMatchForm({
   defaultLeft,
@@ -19,7 +18,8 @@ export function NewMatchForm({
 }) {
   const [left, setLeft] = useState(defaultLeft);
   const [right, setRight] = useState(defaultRight);
-  const [roundCount, setRoundCount] = useState<RoundCount>(5);
+  const [roundCount, setRoundCount] = useState<number>(5);
+  const [custom, setCustom] = useState('');
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction] = useActionState(createMatch, initial);
   const [pending, start] = useTransition();
@@ -29,9 +29,12 @@ export function NewMatchForm({
     setRight(left);
   }
 
+  const effectiveRounds = custom !== '' ? Number(custom) : roundCount;
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(formRef.current!);
+    fd.set('roundCount', String(effectiveRounds));
     fd.set('playedAt', new Date().toISOString());
     // useActionState's dispatch must run inside a transition when called
     // directly (not via a form action/formAction prop), or React drops it.
@@ -92,27 +95,41 @@ export function NewMatchForm({
           <legend className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1">
             Anzahl Runden
           </legend>
-          <div className="grid grid-cols-3 gap-2">
-            {ROUND_OPTIONS.map((n) => (
-              <label
-                key={n}
-                className={`min-h-[48px] flex items-center justify-center rounded-xl border cursor-pointer text-lg font-mono tabular-nums ${
-                  roundCount === n
-                    ? 'border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_15%,transparent)]'
-                    : 'border-[var(--border)] bg-white dark:bg-zinc-900'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="roundCount"
-                  value={n}
-                  checked={roundCount === n}
-                  onChange={() => setRoundCount(n)}
-                  className="sr-only"
-                />
-                {n}
-              </label>
-            ))}
+          <div className="grid grid-cols-4 gap-2">
+            {PRESETS.map((n) => {
+              const active = custom === '' && roundCount === n;
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => {
+                    setRoundCount(n);
+                    setCustom('');
+                  }}
+                  className={`min-h-[48px] flex items-center justify-center rounded-xl border text-lg font-mono tabular-nums ${
+                    active
+                      ? 'border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_15%,transparent)]'
+                      : 'border-[var(--border)] bg-white dark:bg-zinc-900'
+                  }`}
+                >
+                  {n}
+                </button>
+              );
+            })}
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="n"
+              value={custom}
+              onChange={(e) => setCustom(e.target.value.replace(/[^0-9]/g, ''))}
+              aria-label="Eigene Rundenzahl"
+              className={`min-h-[48px] text-center rounded-xl border text-lg font-mono tabular-nums outline-none focus:border-[var(--accent)] ${
+                custom !== ''
+                  ? 'border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_15%,transparent)]'
+                  : 'border-[var(--border)] bg-white dark:bg-zinc-900'
+              }`}
+            />
           </div>
         </fieldset>
 

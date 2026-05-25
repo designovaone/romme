@@ -38,7 +38,10 @@ export const matches = pgTable(
   },
   (t) => [
     index('matches_played_at_idx').on(t.playedAt.desc()),
-    check('matches_round_count_chk', sql`${t.roundCount} IN (3, 5, 10)`),
+    check(
+      'matches_round_count_chk',
+      sql`${t.roundCount} >= 1 AND ${t.roundCount} <= 99`
+    ),
     check(
       'matches_status_chk',
       sql`${t.status} IN ('in_progress', 'complete')`

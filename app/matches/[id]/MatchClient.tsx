@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { submitRound } from './actions';
+import { submitRound, discardMatch } from './actions';
 import { Button } from '../../_components/Button';
 import { NumberInput } from '../../_components/NumberInput';
 import { initialOf } from '../../_lib/format';
@@ -34,7 +34,17 @@ export function MatchClient({ match }: { match: Match }) {
   const [rightPoints, setRightPoints] = useState('');
   const [flash, setFlash] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [pending, start] = useTransition();
+
+  function onDiscard() {
+    const fd = new FormData();
+    fd.set('matchId', match.id);
+    start(async () => {
+      const res = await discardMatch(fd);
+      if (res?.error) setError(res.error);
+    });
+  }
 
   // Rommé scoring: the round winner goes out with 0 points; the loser tallies
   // the cards left in hand. So the recorder only enters the loser's points —
@@ -201,6 +211,37 @@ export function MatchClient({ match }: { match: Match }) {
           </ul>
         </section>
       ) : null}
+
+      <div className="p-4 max-w-2xl mx-auto w-full mt-auto">
+        {!confirmDiscard ? (
+          <Button
+            variant="ghost"
+            fullWidth
+            onClick={() => setConfirmDiscard(true)}
+            disabled={pending}
+          >
+            Spiel verwerfen
+          </Button>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm">
+              Dieses Spiel verwerfen? Alle erfassten Runden gehen verloren.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => setConfirmDiscard(false)}
+                disabled={pending}
+              >
+                Abbrechen
+              </Button>
+              <Button variant="danger" onClick={onDiscard} disabled={pending}>
+                {pending ? 'Verwerfe…' : 'Ja, verwerfen'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </main>
   );
 }

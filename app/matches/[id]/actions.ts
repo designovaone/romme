@@ -2,8 +2,9 @@
 
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { requireSession } from '../../_lib/actions-helpers';
-import { submitRoundSchema } from '../../_lib/validation';
+import { submitRoundSchema, deleteMatchSchema } from '../../_lib/validation';
 import { getDb } from '../../_lib/db';
 import { matches, rounds } from '../../_lib/schema';
 
@@ -73,4 +74,24 @@ export async function submitRound(
   revalidatePath(`/matches/${matchId}`);
   revalidatePath('/');
   return { error: null };
+}
+
+export async function discardMatch(
+  formData: FormData
+): Promise<{ error: string } | never> {
+  await requireSession();
+  const parsed = deleteMatchSchema.safeParse({
+    matchId: formData.get('matchId'),
+  });
+  if (!parsed.success) {
+    return { error: 'Spiel konnte nicht verworfen werden.' };
+  }
+  const db = getDb();
+  try {
+    await db.delete(matches).where(eq(matches.id, parsed.data.matchId));
+  } catch {
+    return { error: 'Spiel konnte nicht verworfen werden.' };
+  }
+  revalidatePath('/');
+  redirect('/');
 }
