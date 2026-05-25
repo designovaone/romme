@@ -66,6 +66,8 @@ npm run dev
 
 Open http://localhost:3000 — you'll be redirected to `/login`.
 
+> `db:migrate` reads `DATABASE_URL` from `.env.local` (then `.env`) via `drizzle.config.ts`, so it targets whatever database that URL points to — run it once against production after deploying, too.
+>
 > The two seeded player names live in the seed migration (`drizzle/0000_init.sql`). Change them there if you fork this for your own table.
 
 ## Scripts
