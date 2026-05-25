@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { submitRound } from './actions';
@@ -32,13 +32,31 @@ export function MatchClient({ match }: { match: Match }) {
 
   const [leftPoints, setLeftPoints] = useState('');
   const [rightPoints, setRightPoints] = useState('');
-  const [winner, setWinner] = useState<0 | 1 | null>(null);
   const [flash, setFlash] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
-  const leftRef = useRef<HTMLInputElement>(null);
-  const rightRef = useRef<HTMLInputElement>(null);
+  // Rommé scoring: the round winner goes out with 0 points; the loser tallies
+  // the cards left in hand. So the recorder only enters the loser's points —
+  // the other player (0) is automatically the winner. We derive the winner
+  // from whichever side has points; entering a score auto-clears the other
+  // side so exactly one loser is recorded per round.
+  const lpNum = leftPoints === '' ? 0 : Number(leftPoints);
+  const rpNum = rightPoints === '' ? 0 : Number(rightPoints);
+  const winner: 0 | 1 | null =
+    lpNum === 0 && rpNum > 0 ? 0 : rpNum === 0 && lpNum > 0 ? 1 : null;
+  const winnerName =
+    winner === 0 ? match.leftPlayer.name : winner === 1 ? match.rightPlayer.name : null;
+  const canSubmit = winner !== null;
+
+  function onLeftChange(v: string) {
+    setLeftPoints(v);
+    if (v !== '' && Number(v) > 0) setRightPoints('');
+  }
+  function onRightChange(v: string) {
+    setRightPoints(v);
+    if (v !== '' && Number(v) > 0) setLeftPoints('');
+  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -53,7 +71,6 @@ export function MatchClient({ match }: { match: Match }) {
       }
       setLeftPoints('');
       setRightPoints('');
-      setWinner(null);
       setFlash(true);
       setTimeout(() => setFlash(false), 400);
       try {
@@ -64,26 +81,6 @@ export function MatchClient({ match }: { match: Match }) {
       router.refresh();
     });
   }
-
-  function pickWinner(w: 0 | 1) {
-    setWinner(w);
-    if (w === 0) {
-      setLeftPoints('0');
-      setTimeout(() => rightRef.current?.focus(), 0);
-    } else {
-      setRightPoints('0');
-      setTimeout(() => leftRef.current?.focus(), 0);
-    }
-  }
-
-  const canSubmit = useMemo(() => {
-    if (winner === null) return false;
-    if (winner === 0 && leftPoints !== '0') return false;
-    if (winner === 1 && rightPoints !== '0') return false;
-    if (winner === 0 && rightPoints === '') return false;
-    if (winner === 1 && leftPoints === '') return false;
-    return true;
-  }, [winner, leftPoints, rightPoints]);
 
   const previous = [...match.rounds].sort((a, b) => a.roundNumber - b.roundNumber);
 
@@ -118,63 +115,61 @@ export function MatchClient({ match }: { match: Match }) {
         <input type="hidden" name="matchId" value={match.id} />
         <input type="hidden" name="roundNumber" value={nextRoundNumber} />
         <input type="hidden" name="winner" value={winner ?? ''} />
-        <input type="hidden" name="leftPoints" value={leftPoints} />
-        <input type="hidden" name="rightPoints" value={rightPoints} />
+        <input type="hidden" name="leftPoints" value={String(lpNum)} />
+        <input type="hidden" name="rightPoints" value={String(rpNum)} />
+
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Punkte des Verlierers eintragen — der andere Spieler gewinnt die Runde
+          mit 0.
+        </p>
 
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-              {match.leftPlayer.name}
+            <span className="text-xs uppercase tracking-wider flex items-center gap-2">
+              <span className="text-zinc-500 dark:text-zinc-400">
+                {match.leftPlayer.name}
+              </span>
+              {winner === 0 ? (
+                <span className="text-[var(--accent)] font-semibold normal-case tracking-normal">
+                  Gewinner
+                </span>
+              ) : null}
             </span>
             <NumberInput
-              ref={leftRef}
               value={leftPoints}
-              onValueChange={setLeftPoints}
+              onValueChange={onLeftChange}
               placeholder="0"
+              className={winner === 0 ? 'border-[var(--accent)]' : ''}
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-              {match.rightPlayer.name}
+            <span className="text-xs uppercase tracking-wider flex items-center gap-2">
+              <span className="text-zinc-500 dark:text-zinc-400">
+                {match.rightPlayer.name}
+              </span>
+              {winner === 1 ? (
+                <span className="text-[var(--accent)] font-semibold normal-case tracking-normal">
+                  Gewinner
+                </span>
+              ) : null}
             </span>
             <NumberInput
-              ref={rightRef}
               value={rightPoints}
-              onValueChange={setRightPoints}
+              onValueChange={onRightChange}
               placeholder="0"
+              className={winner === 1 ? 'border-[var(--accent)]' : ''}
             />
           </label>
         </div>
 
-        <fieldset className="flex flex-col gap-2">
-          <legend className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1">
-            Gewonnen
-          </legend>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => pickWinner(0)}
-              className={`min-h-[56px] rounded-xl border text-lg ${
-                winner === 0
-                  ? 'border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_15%,transparent)] font-semibold'
-                  : 'border-[var(--border)] bg-white dark:bg-zinc-900'
-              }`}
-            >
-              {match.leftPlayer.name}
-            </button>
-            <button
-              type="button"
-              onClick={() => pickWinner(1)}
-              className={`min-h-[56px] rounded-xl border text-lg ${
-                winner === 1
-                  ? 'border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_15%,transparent)] font-semibold'
-                  : 'border-[var(--border)] bg-white dark:bg-zinc-900'
-              }`}
-            >
-              {match.rightPlayer.name}
-            </button>
-          </div>
-        </fieldset>
+        {winnerName ? (
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            Gewinner dieser Runde:{' '}
+            <span className="font-semibold text-[var(--foreground)]">
+              {winnerName}
+            </span>
+          </p>
+        ) : null}
 
         {error ? (
           <p className="text-red-600 text-sm" role="alert">
