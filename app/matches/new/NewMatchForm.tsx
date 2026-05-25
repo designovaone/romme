@@ -65,6 +65,7 @@ export function NewMatchForm({
               name="leftPlayer"
               value={left}
               onChange={(e) => setLeft(e.target.value)}
+              placeholder="Name"
               autoComplete="off"
               className="rounded-xl border border-[var(--border)] bg-white dark:bg-zinc-900 px-3 min-h-[48px] text-lg outline-none focus:border-[var(--accent)]"
             />
@@ -85,6 +86,7 @@ export function NewMatchForm({
               name="rightPlayer"
               value={right}
               onChange={(e) => setRight(e.target.value)}
+              placeholder="Name"
               autoComplete="off"
               className="rounded-xl border border-[var(--border)] bg-white dark:bg-zinc-900 px-3 min-h-[48px] text-lg outline-none focus:border-[var(--accent)]"
             />

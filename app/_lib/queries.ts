@@ -131,7 +131,7 @@ export async function getLastUsedPlayerPair(): Promise<{
     .orderBy(desc(matches.playedAt))
     .limit(1);
   if (rows[0]) return { left: rows[0].leftName, right: rows[0].rightName };
-  return { left: 'Richard', right: 'Andrea' };
+  return { left: '', right: '' };
 }
 
 export async function getPlayers(): Promise<{ id: string; name: string }[]> {

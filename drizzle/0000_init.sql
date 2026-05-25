@@ -38,6 +38,4 @@ ALTER TABLE "matches" ADD CONSTRAINT "matches_right_player_id_players_id_fk" FOR
 ALTER TABLE "rounds" ADD CONSTRAINT "rounds_match_id_matches_id_fk" FOREIGN KEY ("match_id") REFERENCES "public"."matches"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "matches_played_at_idx" ON "matches" USING btree ("played_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE UNIQUE INDEX "rounds_match_round_uniq" ON "rounds" USING btree ("match_id","round_number");--> statement-breakpoint
-CREATE INDEX "rounds_match_idx" ON "rounds" USING btree ("match_id");--> statement-breakpoint
-INSERT INTO "players" ("name") VALUES ('Richard') ON CONFLICT ("name") DO NOTHING;--> statement-breakpoint
-INSERT INTO "players" ("name") VALUES ('Andrea') ON CONFLICT ("name") DO NOTHING;
+CREATE INDEX "rounds_match_idx" ON "rounds" USING btree ("match_id");
