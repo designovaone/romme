@@ -46,3 +46,14 @@ export const editRoundSchema = z
 export const deleteMatchSchema = z.object({
   matchId: z.uuid(),
 });
+
+// Match-level joker tracking. The caller normalizes the form fields first
+// (blank/absent → null) so we never rely on coercion turning '' into 0.
+export const matchExtrasSchema = z.object({
+  matchId: z.uuid(),
+  startJoker: z
+    .enum(['none', 'left', 'right'])
+    .transform((v) => (v === 'left' ? 0 : v === 'right' ? 1 : null)),
+  leftJokers: z.number().int().min(0).max(99).nullable(),
+  rightJokers: z.number().int().min(0).max(99).nullable(),
+});

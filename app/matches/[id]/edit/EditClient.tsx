@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '../../../_components/Button';
 import { NumberInput } from '../../../_components/NumberInput';
 import { editRound, deleteMatch } from './actions';
+import { MatchExtras } from '../MatchExtras';
 import { initialOf } from '../../../_lib/format';
 
 type Round = {
@@ -20,6 +21,9 @@ type Match = {
   id: string;
   status: 'in_progress' | 'complete';
   roundCount: number;
+  startJoker: 0 | 1 | null;
+  leftJokers: number | null;
+  rightJokers: number | null;
   leftPlayer: { id: string; name: string };
   rightPlayer: { id: string; name: string };
   rounds: Round[];
@@ -148,6 +152,17 @@ export function EditClient({ match }: { match: Match }) {
             )}
           </tbody>
         </table>
+
+        <div className="mt-4 -mx-4 border-t border-[var(--border)]">
+          <MatchExtras
+            matchId={match.id}
+            leftName={match.leftPlayer.name}
+            rightName={match.rightPlayer.name}
+            startJoker={match.startJoker}
+            leftJokers={match.leftJokers}
+            rightJokers={match.rightJokers}
+          />
+        </div>
 
         <div className="mt-8 pt-6 border-t border-[var(--border)]">
           {!confirmDelete ? (

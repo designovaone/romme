@@ -71,6 +71,29 @@ function CompleteView({
           <div className="text-base">Unentschieden</div>
         )}
 
+        {match.startJoker !== null ||
+        match.leftJokers !== null ||
+        match.rightJokers !== null ? (
+          <div className="flex flex-col gap-0.5 text-sm text-zinc-600 dark:text-zinc-400">
+            {match.startJoker !== null ? (
+              <span>
+                Start-Joker:{' '}
+                <span className="font-medium text-[var(--foreground)]">
+                  {match.startJoker === 0
+                    ? match.leftPlayer.name
+                    : match.rightPlayer.name}
+                </span>
+              </span>
+            ) : null}
+            {match.leftJokers !== null || match.rightJokers !== null ? (
+              <span className="tabular-nums">
+                Joker erhalten: {match.leftPlayer.name} {match.leftJokers ?? '—'}{' '}
+                · {match.rightPlayer.name} {match.rightJokers ?? '—'}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+
         <table className="w-full mt-4 font-mono tabular-nums text-xl border-collapse">
           <thead>
             <tr className="text-sm text-zinc-500 dark:text-zinc-400">

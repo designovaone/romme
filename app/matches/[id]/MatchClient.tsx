@@ -6,12 +6,16 @@ import { useRouter } from 'next/navigation';
 import { submitRound, discardMatch } from './actions';
 import { Button } from '../../_components/Button';
 import { NumberInput } from '../../_components/NumberInput';
+import { MatchExtras } from './MatchExtras';
 import { initialOf } from '../../_lib/format';
 
 type Match = {
   id: string;
   status: 'in_progress' | 'complete';
   roundCount: number;
+  startJoker: 0 | 1 | null;
+  leftJokers: number | null;
+  rightJokers: number | null;
   leftPlayer: { id: string; name: string };
   rightPlayer: { id: string; name: string };
   rounds: Array<{
@@ -97,25 +101,29 @@ export function MatchClient({ match }: { match: Match }) {
   return (
     <main className={`min-h-dvh flex flex-col ${flash ? 'flash' : ''}`}>
       <div className="sticky top-0 z-10 bg-[var(--background)] border-b border-[var(--border)]">
-        <header className="flex items-center justify-between p-3">
-          <Link href="/" className="text-sm text-zinc-600 dark:text-zinc-400">
+        {/* Stacked + centered so the round counter reads big and nothing
+            overflows horizontally on a narrow phone. The back link is taken
+            out of flow (absolute) so it can't push the centered title. */}
+        <header className="relative px-3 pt-3 pb-2 flex flex-col items-center gap-1 text-center">
+          <Link
+            href="/"
+            className="absolute left-3 top-3 text-sm text-zinc-600 dark:text-zinc-400"
+          >
             ← Zurück
           </Link>
-          <div className="text-sm font-medium">
+          <div className="max-w-full truncate px-16 text-sm font-medium">
             {match.leftPlayer.name} ↔ {match.rightPlayer.name}
           </div>
-          <div className="text-sm text-zinc-500 dark:text-zinc-400 tabular-nums">
+          <div className="text-3xl font-bold tabular-nums">
             Runde {nextRoundNumber}/{match.roundCount}
           </div>
-        </header>
-        <div className="px-3 pb-2 text-xs flex items-center justify-between gap-3">
-          <span className="text-zinc-600 dark:text-zinc-400">
+          <div className="text-sm text-zinc-600 dark:text-zinc-400">
             Geber: <span className="font-medium">{dealerName}</span>
-          </span>
-          <span className="italic text-zinc-500 dark:text-zinc-400">
+          </div>
+          <p className="text-xs italic text-zinc-500 dark:text-zinc-400">
             Vor Spielbeginn: 1 Karte ziehen — bei Joker behalten.
-          </span>
-        </div>
+          </p>
+        </header>
       </div>
 
       <form
@@ -211,6 +219,16 @@ export function MatchClient({ match }: { match: Match }) {
           </ul>
         </section>
       ) : null}
+
+      <MatchExtras
+        matchId={match.id}
+        leftName={match.leftPlayer.name}
+        rightName={match.rightPlayer.name}
+        startJoker={match.startJoker}
+        leftJokers={match.leftJokers}
+        rightJokers={match.rightJokers}
+        hint="Vor der letzten Runde speichern — sonst hier nach Spielende über „Bearbeiten“ nachtragen."
+      />
 
       <div className="p-4 max-w-2xl mx-auto w-full mt-auto">
         {!confirmDiscard ? (

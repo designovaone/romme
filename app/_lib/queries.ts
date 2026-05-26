@@ -56,6 +56,9 @@ export type MatchDetail = {
   playedAt: Date;
   status: 'in_progress' | 'complete';
   roundCount: number;
+  startJoker: 0 | 1 | null;
+  leftJokers: number | null;
+  rightJokers: number | null;
   leftPlayer: { id: string; name: string };
   rightPlayer: { id: string; name: string };
   rounds: Array<{
@@ -76,6 +79,9 @@ export async function getMatch(id: string): Promise<MatchDetail | null> {
       playedAt: matches.playedAt,
       status: matches.status,
       roundCount: matches.roundCount,
+      startJoker: matches.startJoker,
+      leftJokers: matches.leftJokers,
+      rightJokers: matches.rightJokers,
       leftPlayerId: matches.leftPlayerId,
       rightPlayerId: matches.rightPlayerId,
     })
@@ -102,6 +108,9 @@ export async function getMatch(id: string): Promise<MatchDetail | null> {
     playedAt: m.playedAt,
     status: m.status as 'in_progress' | 'complete',
     roundCount: m.roundCount,
+    startJoker: m.startJoker as 0 | 1 | null,
+    leftJokers: m.leftJokers,
+    rightJokers: m.rightJokers,
     leftPlayer: { id: leftP[0].id, name: leftP[0].name },
     rightPlayer: { id: rightP[0].id, name: rightP[0].name },
     rounds: rds.map((r) => ({

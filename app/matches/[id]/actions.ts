@@ -4,7 +4,11 @@ import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireSession } from '../../_lib/actions-helpers';
-import { submitRoundSchema, deleteMatchSchema } from '../../_lib/validation';
+import {
+  submitRoundSchema,
+  deleteMatchSchema,
+  matchExtrasSchema,
+} from '../../_lib/validation';
 import { getDb } from '../../_lib/db';
 import { matches, rounds } from '../../_lib/schema';
 
@@ -72,6 +76,44 @@ export async function submitRound(
   }
 
   revalidatePath(`/matches/${matchId}`);
+  revalidatePath('/');
+  return { error: null };
+}
+
+// Blank/absent count field → null (not recorded). We normalize here rather
+// than leaning on Zod coercion, which would silently turn '' into 0.
+function jokerCount(v: FormDataEntryValue | null): number | null {
+  const s = (v ?? '').toString().trim();
+  return s === '' ? null : Number(s);
+}
+
+export async function updateMatchExtras(
+  formData: FormData
+): Promise<{ error: string | null }> {
+  await requireSession();
+
+  const parsed = matchExtrasSchema.safeParse({
+    matchId: formData.get('matchId'),
+    startJoker: formData.get('startJoker'),
+    leftJokers: jokerCount(formData.get('leftJokers')),
+    rightJokers: jokerCount(formData.get('rightJokers')),
+  });
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return { error: first?.message ?? 'Ungültige Eingabe.' };
+  }
+
+  const { matchId, startJoker, leftJokers, rightJokers } = parsed.data;
+  const db = getDb();
+  const updated = await db
+    .update(matches)
+    .set({ startJoker, leftJokers, rightJokers })
+    .where(eq(matches.id, matchId))
+    .returning({ id: matches.id });
+  if (updated.length === 0) return { error: 'Spiel nicht gefunden.' };
+
+  revalidatePath(`/matches/${matchId}`);
+  revalidatePath(`/matches/${matchId}/edit`);
   revalidatePath('/');
   return { error: null };
 }

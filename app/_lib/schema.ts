@@ -35,6 +35,15 @@ export const matches = pgTable(
       .references(() => players.id),
     roundCount: smallint('round_count').notNull(),
     status: text('status').notNull().default('in_progress'),
+    // Who drew the joker when lifting the stack at the start of the match.
+    // NULL = nobody (the default; drawing a joker is the exception), 0 = left
+    // player, 1 = right player. Lets us later ask: does the start joker
+    // correlate with winning?
+    startJoker: smallint('start_joker'),
+    // Optional total jokers each player received over the whole match. NULL =
+    // not recorded / blank (left empty when the table didn't track it).
+    leftJokers: smallint('left_jokers'),
+    rightJokers: smallint('right_jokers'),
   },
   (t) => [
     index('matches_played_at_idx').on(t.playedAt.desc()),
@@ -47,6 +56,17 @@ export const matches = pgTable(
       sql`${t.status} IN ('in_progress', 'complete')`
     ),
     check('matches_distinct_players_chk', sql`${t.leftPlayerId} <> ${t.rightPlayerId}`),
+    // NULL passes these CHECKs (NULL IN (..) is unknown, not false), so the
+    // nullable "not recorded" state is preserved.
+    check('matches_start_joker_chk', sql`${t.startJoker} IN (0, 1)`),
+    check(
+      'matches_left_jokers_chk',
+      sql`${t.leftJokers} >= 0 AND ${t.leftJokers} <= 99`
+    ),
+    check(
+      'matches_right_jokers_chk',
+      sql`${t.rightJokers} >= 0 AND ${t.rightJokers} <= 99`
+    ),
   ]
 );
 
