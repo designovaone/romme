@@ -40,10 +40,6 @@ export const matches = pgTable(
     // player, 1 = right player. Lets us later ask: does the start joker
     // correlate with winning?
     startJoker: smallint('start_joker'),
-    // Optional total jokers each player received over the whole match. NULL =
-    // not recorded / blank (left empty when the table didn't track it).
-    leftJokers: smallint('left_jokers'),
-    rightJokers: smallint('right_jokers'),
   },
   (t) => [
     index('matches_played_at_idx').on(t.playedAt.desc()),
@@ -56,17 +52,9 @@ export const matches = pgTable(
       sql`${t.status} IN ('in_progress', 'complete')`
     ),
     check('matches_distinct_players_chk', sql`${t.leftPlayerId} <> ${t.rightPlayerId}`),
-    // NULL passes these CHECKs (NULL IN (..) is unknown, not false), so the
+    // NULL passes this CHECK (NULL IN (..) is unknown, not false), so the
     // nullable "not recorded" state is preserved.
     check('matches_start_joker_chk', sql`${t.startJoker} IN (0, 1)`),
-    check(
-      'matches_left_jokers_chk',
-      sql`${t.leftJokers} >= 0 AND ${t.leftJokers} <= 99`
-    ),
-    check(
-      'matches_right_jokers_chk',
-      sql`${t.rightJokers} >= 0 AND ${t.rightJokers} <= 99`
-    ),
   ]
 );
 
@@ -82,6 +70,11 @@ export const rounds = pgTable(
     rightPoints: integer('right_points').notNull(),
     winner: smallint('winner').notNull(),
     dealer: smallint('dealer').notNull(),
+    // Optional jokers each player received this round. NULL = not recorded
+    // (left blank); the match total is the SUM across rounds, so jokers
+    // accumulate game by game instead of being one match-level figure.
+    leftJokers: smallint('left_jokers'),
+    rightJokers: smallint('right_jokers'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -99,6 +92,15 @@ export const rounds = pgTable(
     ),
     check('rounds_winner_chk', sql`${t.winner} IN (0, 1)`),
     check('rounds_dealer_chk', sql`${t.dealer} IN (0, 1)`),
+    // NULL passes these CHECKs by design (preserves the "not recorded" state).
+    check(
+      'rounds_left_jokers_chk',
+      sql`${t.leftJokers} >= 0 AND ${t.leftJokers} <= 99`
+    ),
+    check(
+      'rounds_right_jokers_chk',
+      sql`${t.rightJokers} >= 0 AND ${t.rightJokers} <= 99`
+    ),
   ]
 );
 

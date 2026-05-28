@@ -33,6 +33,15 @@ function CompleteView({
 }) {
   const leftTotal = match.rounds.reduce((s, r) => s + r.leftPoints, 0);
   const rightTotal = match.rounds.reduce((s, r) => s + r.rightPoints, 0);
+  // Jokers accumulate per round; the match figure is the running sum.
+  const leftJokerTotal = match.rounds.reduce((s, r) => s + (r.leftJokers ?? 0), 0);
+  const rightJokerTotal = match.rounds.reduce(
+    (s, r) => s + (r.rightJokers ?? 0),
+    0
+  );
+  const anyJokers = match.rounds.some(
+    (r) => r.leftJokers != null || r.rightJokers != null
+  );
   const leftWins = leftTotal < rightTotal;
   const tied = leftTotal === rightTotal;
   const winnerName = tied
@@ -71,9 +80,7 @@ function CompleteView({
           <div className="text-base">Unentschieden</div>
         )}
 
-        {match.startJoker !== null ||
-        match.leftJokers !== null ||
-        match.rightJokers !== null ? (
+        {match.startJoker !== null || anyJokers ? (
           <div className="flex flex-col gap-0.5 text-sm text-zinc-600 dark:text-zinc-400">
             {match.startJoker !== null ? (
               <span>
@@ -85,10 +92,10 @@ function CompleteView({
                 </span>
               </span>
             ) : null}
-            {match.leftJokers !== null || match.rightJokers !== null ? (
+            {anyJokers ? (
               <span className="tabular-nums">
-                Joker erhalten: {match.leftPlayer.name} {match.leftJokers ?? '—'}{' '}
-                · {match.rightPlayer.name} {match.rightJokers ?? '—'}
+                Joker gesamt: {match.leftPlayer.name} {leftJokerTotal} ·{' '}
+                {match.rightPlayer.name} {rightJokerTotal}
               </span>
             ) : null}
           </div>
@@ -111,10 +118,20 @@ function CompleteView({
                 <td className="py-3 text-right">
                   {r.dealer === 0 ? <DealerMark name={match.leftPlayer.name} /> : null}
                   {r.leftPoints}
+                  {r.leftJokers != null ? (
+                    <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+                      {r.leftJokers} Joker
+                    </span>
+                  ) : null}
                 </td>
                 <td className="py-3 text-right">
                   {r.dealer === 1 ? <DealerMark name={match.rightPlayer.name} /> : null}
                   {r.rightPoints}
+                  {r.rightJokers != null ? (
+                    <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+                      {r.rightJokers} Joker
+                    </span>
+                  ) : null}
                 </td>
               </tr>
             ))}

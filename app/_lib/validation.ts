@@ -16,6 +16,14 @@ export const createMatchSchema = z
     { message: 'Beide Spielernamen müssen unterschiedlich sein.' }
   );
 
+// Jokers each player received this round (left_jokers/right_jokers). Optional:
+// the caller normalizes blank/absent → null before parsing, so '' never
+// coerces to 0.
+const roundJokers = {
+  leftJokers: z.number().int().min(0).max(99).nullable(),
+  rightJokers: z.number().int().min(0).max(99).nullable(),
+};
+
 export const submitRoundSchema = z
   .object({
     matchId: z.uuid(),
@@ -23,6 +31,7 @@ export const submitRoundSchema = z
     leftPoints: z.coerce.number().int().min(0).max(500),
     rightPoints: z.coerce.number().int().min(0).max(500),
     winner: z.coerce.number().int().min(0).max(1),
+    ...roundJokers,
   })
   .refine(
     (d) => (d.winner === 0 ? d.leftPoints === 0 : d.rightPoints === 0),
@@ -37,6 +46,7 @@ export const editRoundSchema = z
     rightPoints: z.coerce.number().int().min(0).max(500),
     winner: z.coerce.number().int().min(0).max(1),
     dealer: z.coerce.number().int().min(0).max(1),
+    ...roundJokers,
   })
   .refine(
     (d) => (d.winner === 0 ? d.leftPoints === 0 : d.rightPoints === 0),
@@ -47,13 +57,12 @@ export const deleteMatchSchema = z.object({
   matchId: z.uuid(),
 });
 
-// Match-level joker tracking. The caller normalizes the form fields first
-// (blank/absent → null) so we never rely on coercion turning '' into 0.
+// Match-level joker tracking: only the start joker (who lifted a joker off the
+// stack at the start). Per-player joker counts are now per-round (see
+// roundJokers above) and accumulate across the match.
 export const matchExtrasSchema = z.object({
   matchId: z.uuid(),
   startJoker: z
     .enum(['none', 'left', 'right'])
     .transform((v) => (v === 'left' ? 0 : v === 'right' ? 1 : null)),
-  leftJokers: z.number().int().min(0).max(99).nullable(),
-  rightJokers: z.number().int().min(0).max(99).nullable(),
 });

@@ -14,8 +14,6 @@ type Match = {
   status: 'in_progress' | 'complete';
   roundCount: number;
   startJoker: 0 | 1 | null;
-  leftJokers: number | null;
-  rightJokers: number | null;
   leftPlayer: { id: string; name: string };
   rightPlayer: { id: string; name: string };
   rounds: Array<{
@@ -25,6 +23,8 @@ type Match = {
     rightPoints: number;
     winner: 0 | 1;
     dealer: 0 | 1;
+    leftJokers: number | null;
+    rightJokers: number | null;
   }>;
 };
 
@@ -36,6 +36,8 @@ export function MatchClient({ match }: { match: Match }) {
 
   const [leftPoints, setLeftPoints] = useState('');
   const [rightPoints, setRightPoints] = useState('');
+  const [leftJokers, setLeftJokers] = useState('');
+  const [rightJokers, setRightJokers] = useState('');
   const [flash, setFlash] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -85,6 +87,8 @@ export function MatchClient({ match }: { match: Match }) {
       }
       setLeftPoints('');
       setRightPoints('');
+      setLeftJokers('');
+      setRightJokers('');
       setFlash(true);
       setTimeout(() => setFlash(false), 400);
       try {
@@ -97,6 +101,13 @@ export function MatchClient({ match }: { match: Match }) {
   }
 
   const previous = [...match.rounds].sort((a, b) => a.roundNumber - b.roundNumber);
+
+  // Jokers accumulate game by game; the match total is the running sum.
+  const leftJokerTotal = match.rounds.reduce((s, r) => s + (r.leftJokers ?? 0), 0);
+  const rightJokerTotal = match.rounds.reduce((s, r) => s + (r.rightJokers ?? 0), 0);
+  const anyJokers = match.rounds.some(
+    (r) => r.leftJokers != null || r.rightJokers != null
+  );
 
   return (
     <main className={`min-h-dvh flex flex-col ${flash ? 'flash' : ''}`}>
@@ -180,6 +191,42 @@ export function MatchClient({ match }: { match: Match }) {
           </label>
         </div>
 
+        <fieldset className="flex flex-col gap-1">
+          <legend className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1">
+            Joker diese Runde (optional)
+          </legend>
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              name="leftJokers"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="off"
+              placeholder="—"
+              aria-label={`${match.leftPlayer.name} — Joker diese Runde`}
+              value={leftJokers}
+              onChange={(e) =>
+                setLeftJokers(e.target.value.replace(/[^0-9]/g, ''))
+              }
+              className="rounded-lg border border-[var(--border)] bg-white dark:bg-zinc-900 px-3 min-h-[44px] outline-none focus:border-[var(--accent)] font-mono tabular-nums"
+            />
+            <input
+              name="rightJokers"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="off"
+              placeholder="—"
+              aria-label={`${match.rightPlayer.name} — Joker diese Runde`}
+              value={rightJokers}
+              onChange={(e) =>
+                setRightJokers(e.target.value.replace(/[^0-9]/g, ''))
+              }
+              className="rounded-lg border border-[var(--border)] bg-white dark:bg-zinc-900 px-3 min-h-[44px] outline-none focus:border-[var(--accent)] font-mono tabular-nums"
+            />
+          </div>
+        </fieldset>
+
         {winnerName ? (
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             Gewinner dieser Runde:{' '}
@@ -213,10 +260,23 @@ export function MatchClient({ match }: { match: Match }) {
                 {r.dealer === 0
                   ? initialOf(match.leftPlayer.name)
                   : initialOf(match.rightPlayer.name)}
+                {r.leftJokers != null || r.rightJokers != null ? (
+                  <>
+                    {', '}Joker {initialOf(match.leftPlayer.name)}{' '}
+                    {r.leftJokers ?? 0} / {initialOf(match.rightPlayer.name)}{' '}
+                    {r.rightJokers ?? 0}
+                  </>
+                ) : null}
                 )
               </li>
             ))}
           </ul>
+          {anyJokers ? (
+            <p className="mt-2 font-mono tabular-nums text-sm text-zinc-600 dark:text-zinc-400">
+              Joker gesamt: {initialOf(match.leftPlayer.name)} {leftJokerTotal} /{' '}
+              {initialOf(match.rightPlayer.name)} {rightJokerTotal}
+            </p>
+          ) : null}
         </section>
       ) : null}
 
@@ -225,9 +285,7 @@ export function MatchClient({ match }: { match: Match }) {
         leftName={match.leftPlayer.name}
         rightName={match.rightPlayer.name}
         startJoker={match.startJoker}
-        leftJokers={match.leftJokers}
-        rightJokers={match.rightJokers}
-        hint="Vor der letzten Runde speichern — sonst hier nach Spielende über „Bearbeiten“ nachtragen."
+        hint="Wer beim Stapelheben den Joker zog. Joker pro Runde werden oben bei der Rundeneingabe erfasst."
       />
 
       <div className="p-4 max-w-2xl mx-auto w-full mt-auto">

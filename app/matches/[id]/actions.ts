@@ -3,7 +3,7 @@
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { requireSession } from '../../_lib/actions-helpers';
+import { requireSession, jokerCount } from '../../_lib/actions-helpers';
 import {
   submitRoundSchema,
   deleteMatchSchema,
@@ -26,13 +26,16 @@ export async function submitRound(
     leftPoints: formData.get('leftPoints'),
     rightPoints: formData.get('rightPoints'),
     winner: formData.get('winner'),
+    leftJokers: jokerCount(formData.get('leftJokers')),
+    rightJokers: jokerCount(formData.get('rightJokers')),
   });
   if (!parsed.success) {
     const first = parsed.error.issues[0];
     return { error: first?.message ?? 'Ungültige Eingabe.' };
   }
 
-  const { matchId, roundNumber, leftPoints, rightPoints, winner } = parsed.data;
+  const { matchId, roundNumber, leftPoints, rightPoints, winner, leftJokers, rightJokers } =
+    parsed.data;
   const db = getDb();
   const matchRows = await db
     .select({ roundCount: matches.roundCount, status: matches.status })
@@ -56,6 +59,8 @@ export async function submitRound(
       rightPoints,
       winner,
       dealer,
+      leftJokers,
+      rightJokers,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -80,13 +85,6 @@ export async function submitRound(
   return { error: null };
 }
 
-// Blank/absent count field → null (not recorded). We normalize here rather
-// than leaning on Zod coercion, which would silently turn '' into 0.
-function jokerCount(v: FormDataEntryValue | null): number | null {
-  const s = (v ?? '').toString().trim();
-  return s === '' ? null : Number(s);
-}
-
 export async function updateMatchExtras(
   formData: FormData
 ): Promise<{ error: string | null }> {
@@ -95,19 +93,17 @@ export async function updateMatchExtras(
   const parsed = matchExtrasSchema.safeParse({
     matchId: formData.get('matchId'),
     startJoker: formData.get('startJoker'),
-    leftJokers: jokerCount(formData.get('leftJokers')),
-    rightJokers: jokerCount(formData.get('rightJokers')),
   });
   if (!parsed.success) {
     const first = parsed.error.issues[0];
     return { error: first?.message ?? 'Ungültige Eingabe.' };
   }
 
-  const { matchId, startJoker, leftJokers, rightJokers } = parsed.data;
+  const { matchId, startJoker } = parsed.data;
   const db = getDb();
   const updated = await db
     .update(matches)
-    .set({ startJoker, leftJokers, rightJokers })
+    .set({ startJoker })
     .where(eq(matches.id, matchId))
     .returning({ id: matches.id });
   if (updated.length === 0) return { error: 'Spiel nicht gefunden.' };

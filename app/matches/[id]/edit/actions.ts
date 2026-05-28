@@ -3,7 +3,7 @@
 import { and, eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { requireSession } from '../../../_lib/actions-helpers';
+import { requireSession, jokerCount } from '../../../_lib/actions-helpers';
 import {
   deleteMatchSchema,
   editRoundSchema,
@@ -26,18 +26,28 @@ export async function editRound(
     rightPoints: formData.get('rightPoints'),
     winner: formData.get('winner'),
     dealer: formData.get('dealer'),
+    leftJokers: jokerCount(formData.get('leftJokers')),
+    rightJokers: jokerCount(formData.get('rightJokers')),
   });
   if (!parsed.success) {
     const first = parsed.error.issues[0];
     return { error: first?.message ?? 'Ungültige Eingabe.' };
   }
-  const { roundId, matchId, leftPoints, rightPoints, winner, dealer } =
-    parsed.data;
+  const {
+    roundId,
+    matchId,
+    leftPoints,
+    rightPoints,
+    winner,
+    dealer,
+    leftJokers,
+    rightJokers,
+  } = parsed.data;
 
   const db = getDb();
   const updated = await db
     .update(rounds)
-    .set({ leftPoints, rightPoints, winner, dealer })
+    .set({ leftPoints, rightPoints, winner, dealer, leftJokers, rightJokers })
     .where(and(eq(rounds.id, roundId), eq(rounds.matchId, matchId)))
     .returning({ id: rounds.id });
 

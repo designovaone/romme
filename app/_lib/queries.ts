@@ -57,8 +57,6 @@ export type MatchDetail = {
   status: 'in_progress' | 'complete';
   roundCount: number;
   startJoker: 0 | 1 | null;
-  leftJokers: number | null;
-  rightJokers: number | null;
   leftPlayer: { id: string; name: string };
   rightPlayer: { id: string; name: string };
   rounds: Array<{
@@ -68,6 +66,8 @@ export type MatchDetail = {
     rightPoints: number;
     winner: 0 | 1;
     dealer: 0 | 1;
+    leftJokers: number | null;
+    rightJokers: number | null;
   }>;
 };
 
@@ -80,8 +80,6 @@ export async function getMatch(id: string): Promise<MatchDetail | null> {
       status: matches.status,
       roundCount: matches.roundCount,
       startJoker: matches.startJoker,
-      leftJokers: matches.leftJokers,
-      rightJokers: matches.rightJokers,
       leftPlayerId: matches.leftPlayerId,
       rightPlayerId: matches.rightPlayerId,
     })
@@ -109,8 +107,6 @@ export async function getMatch(id: string): Promise<MatchDetail | null> {
     status: m.status as 'in_progress' | 'complete',
     roundCount: m.roundCount,
     startJoker: m.startJoker as 0 | 1 | null,
-    leftJokers: m.leftJokers,
-    rightJokers: m.rightJokers,
     leftPlayer: { id: leftP[0].id, name: leftP[0].name },
     rightPlayer: { id: rightP[0].id, name: rightP[0].name },
     rounds: rds.map((r) => ({
@@ -120,6 +116,8 @@ export async function getMatch(id: string): Promise<MatchDetail | null> {
       rightPoints: r.rightPoints,
       winner: r.winner as 0 | 1,
       dealer: r.dealer as 0 | 1,
+      leftJokers: r.leftJokers,
+      rightJokers: r.rightJokers,
     })),
   };
 }

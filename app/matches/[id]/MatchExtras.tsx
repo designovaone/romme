@@ -10,34 +10,30 @@ type StartJoker = 'none' | 'left' | 'right';
 const inputClass =
   'rounded-lg border border-[var(--border)] bg-white dark:bg-zinc-900 px-3 min-h-[44px] outline-none focus:border-[var(--accent)]';
 
-// Match-level joker tracking, editable both while a game is in progress (set
-// the start joker early) and after it finishes (fill in the per-player totals).
-// On the in-progress screen the panel's local state resets if the match
-// auto-completes on the final round — so save before recording the last round,
-// or correct it afterwards via "Bearbeiten".
+// Match-level joker tracking: just the start joker (who lifted a joker off the
+// stack when the match began). Per-player joker counts are recorded per round
+// during round entry and accumulate across the match — they're not set here.
+// Editable both while a game is in progress and after it finishes. On the
+// in-progress screen the panel's local state resets if the match auto-completes
+// on the final round — so set it early, or correct it afterwards via
+// "Bearbeiten".
 export function MatchExtras({
   matchId,
   leftName,
   rightName,
   startJoker,
-  leftJokers,
-  rightJokers,
   hint,
 }: {
   matchId: string;
   leftName: string;
   rightName: string;
   startJoker: 0 | 1 | null;
-  leftJokers: number | null;
-  rightJokers: number | null;
   hint?: string;
 }) {
   const router = useRouter();
   const [sj, setSj] = useState<StartJoker>(
     startJoker === 0 ? 'left' : startJoker === 1 ? 'right' : 'none'
   );
-  const [lj, setLj] = useState(leftJokers == null ? '' : String(leftJokers));
-  const [rj, setRj] = useState(rightJokers == null ? '' : String(rightJokers));
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -46,8 +42,6 @@ export function MatchExtras({
     const fd = new FormData();
     fd.set('matchId', matchId);
     fd.set('startJoker', sj);
-    fd.set('leftJokers', lj);
-    fd.set('rightJokers', rj);
     setError(null);
     setSaved(false);
     start(async () => {
@@ -65,7 +59,7 @@ export function MatchExtras({
   return (
     <section className="p-4 max-w-2xl mx-auto w-full">
       <h2 className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2">
-        Joker
+        Start-Joker
       </h2>
       <div className="flex flex-col gap-3">
         <label className="flex flex-col gap-1">
@@ -83,39 +77,6 @@ export function MatchExtras({
           </select>
         </label>
 
-        <div className="grid grid-cols-2 gap-3">
-          <label className="flex flex-col gap-1">
-            <span className="text-sm text-zinc-600 dark:text-zinc-400">
-              {leftName} — Joker erhalten
-            </span>
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              autoComplete="off"
-              placeholder="—"
-              value={lj}
-              onChange={(e) => setLj(e.target.value.replace(/[^0-9]/g, ''))}
-              className={`${inputClass} font-mono tabular-nums`}
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-sm text-zinc-600 dark:text-zinc-400">
-              {rightName} — Joker erhalten
-            </span>
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              autoComplete="off"
-              placeholder="—"
-              value={rj}
-              onChange={(e) => setRj(e.target.value.replace(/[^0-9]/g, ''))}
-              className={`${inputClass} font-mono tabular-nums`}
-            />
-          </label>
-        </div>
-
         {hint ? (
           <p className="text-xs text-zinc-500 dark:text-zinc-400">{hint}</p>
         ) : null}
@@ -128,7 +89,7 @@ export function MatchExtras({
 
         <div className="flex items-center gap-3">
           <Button variant="secondary" onClick={onSave} disabled={pending}>
-            {pending ? 'Speichere…' : 'Joker speichern'}
+            {pending ? 'Speichere…' : 'Start-Joker speichern'}
           </Button>
           <span
             aria-live="polite"

@@ -16,14 +16,14 @@ type Round = {
   rightPoints: number;
   winner: 0 | 1;
   dealer: 0 | 1;
+  leftJokers: number | null;
+  rightJokers: number | null;
 };
 type Match = {
   id: string;
   status: 'in_progress' | 'complete';
   roundCount: number;
   startJoker: 0 | 1 | null;
-  leftJokers: number | null;
-  rightJokers: number | null;
   leftPlayer: { id: string; name: string };
   rightPlayer: { id: string; name: string };
   rounds: Round[];
@@ -50,6 +50,11 @@ export function EditClient({ match }: { match: Match }) {
     fd.set('rightPoints', String(merged.rightPoints));
     fd.set('winner', String(merged.winner));
     fd.set('dealer', String(merged.dealer));
+    fd.set('leftJokers', merged.leftJokers == null ? '' : String(merged.leftJokers));
+    fd.set(
+      'rightJokers',
+      merged.rightJokers == null ? '' : String(merged.rightJokers)
+    );
     start(async () => {
       const res = await editRound({ error: null }, fd);
       if (res?.error) setError(res.error);
@@ -130,12 +135,22 @@ export function EditClient({ match }: { match: Match }) {
                       <DealerMark name={match.leftPlayer.name} />
                     ) : null}
                     {r.leftPoints}
+                    {r.leftJokers != null ? (
+                      <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+                        {r.leftJokers} Joker
+                      </span>
+                    ) : null}
                   </td>
                   <td className="py-3 text-right">
                     {r.dealer === 1 ? (
                       <DealerMark name={match.rightPlayer.name} />
                     ) : null}
                     {r.rightPoints}
+                    {r.rightJokers != null ? (
+                      <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+                        {r.rightJokers} Joker
+                      </span>
+                    ) : null}
                   </td>
                   <td className="py-3 text-right">
                     <button
@@ -159,8 +174,6 @@ export function EditClient({ match }: { match: Match }) {
             leftName={match.leftPlayer.name}
             rightName={match.rightPlayer.name}
             startJoker={match.startJoker}
-            leftJokers={match.leftJokers}
-            rightJokers={match.rightJokers}
           />
         </div>
 
@@ -215,6 +228,12 @@ function EditRow({
   const [leftPoints, setLeftPoints] = useState(String(round.leftPoints));
   const [rightPoints, setRightPoints] = useState(String(round.rightPoints));
   const [dealer, setDealer] = useState<0 | 1>(round.dealer);
+  const [leftJokers, setLeftJokers] = useState(
+    round.leftJokers == null ? '' : String(round.leftJokers)
+  );
+  const [rightJokers, setRightJokers] = useState(
+    round.rightJokers == null ? '' : String(round.rightJokers)
+  );
 
   // Winner is derived from the points: the player with 0 (loser entered points).
   const lpNum = leftPoints === '' ? 0 : Number(leftPoints);
@@ -281,6 +300,38 @@ function EditRow({
           </label>
         </div>
         <div className="grid grid-cols-2 gap-2 mt-2">
+          <label className="text-xs text-zinc-500 dark:text-zinc-400 flex flex-col gap-1">
+            {match.leftPlayer.name} — Joker
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="off"
+              placeholder="—"
+              value={leftJokers}
+              onChange={(e) =>
+                setLeftJokers(e.target.value.replace(/[^0-9]/g, ''))
+              }
+              className="rounded-lg border border-[var(--border)] bg-white dark:bg-zinc-900 px-2 min-h-[40px] font-mono tabular-nums"
+            />
+          </label>
+          <label className="text-xs text-zinc-500 dark:text-zinc-400 flex flex-col gap-1">
+            {match.rightPlayer.name} — Joker
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="off"
+              placeholder="—"
+              value={rightJokers}
+              onChange={(e) =>
+                setRightJokers(e.target.value.replace(/[^0-9]/g, ''))
+              }
+              className="rounded-lg border border-[var(--border)] bg-white dark:bg-zinc-900 px-2 min-h-[40px] font-mono tabular-nums"
+            />
+          </label>
+        </div>
+        <div className="grid grid-cols-2 gap-2 mt-2">
           <Button variant="secondary" onClick={onCancel} disabled={pending}>
             Abbrechen
           </Button>
@@ -292,6 +343,8 @@ function EditRow({
                 rightPoints: rpNum,
                 winner,
                 dealer,
+                leftJokers: leftJokers === '' ? null : Number(leftJokers),
+                rightJokers: rightJokers === '' ? null : Number(rightJokers),
               });
             }}
             disabled={pending || winner === null}
